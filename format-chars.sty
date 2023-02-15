@@ -1,0 +1,80 @@
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{format-chars}
+[2023/02/15 v1  Latex package to apply formatings on group of Arabic or Persian letters]
+
+
+%\FormatChars{#1}{#2}[#3]{#4} 
+
+% #1  : command to apply on range ex : \uline 
+% #2  : range of letters ex : 2-6
+% #3  : type of connection :  r , l , rl
+% #4  : word  
+
+\ExplSyntaxOn
+
+\NewDocumentCommand{\FormatChars}{m >{\SplitArgument{1}{-}}m O{} m}
+ {
+  \cs_set_nopar:Npn \inputcs { #1 }
+  \cs_set_nopar:Npn \joinb {^^^^200d}
+  \cs_set_nopar:Npn \joine {^^^^200d}
+  \str_case:nnF { #3 }
+   {
+    {  } { \let\joinb\relax\let\joine\relax }
+    { r } { \let\joine\relax }
+    { l } { \let\joinb\relax }
+    { rl } { }
+   }
+   {
+  \msg_error:nn {}{#2~is~not~available~for~contextual~forms,~try~with~r,~l,~or~b} 
+   } 
+      % #2 is passed as two braced arguments
+  \_FormatChars:nnn #2 { #4 }
+ }
+
+\cs_new_protected:Nn \_FormatChars:nnn
+ {
+  % let's analyze the first two args
+  \tl_if_novalue:nTF { #2 }
+   {% no hyphen in the argument
+    \___FormatChars:nnn { #1 } { #1 } { #3 }
+   }
+   {
+    \bool_lazy_or:nnTF { \tl_if_blank_p:n { #1 } } { \tl_if_blank_p:n { #2 } }
+     {% argument is -n or m- or -
+      \tl_if_blank:nTF { #1 }
+       {
+        \tl_if_blank:nTF { #2 }
+         {% argument is -
+          \joinb\inputcs{\joinb #3\joine}\joine
+         }
+         {% argument is -n
+          \___FormatChars:nnn { 1 } { #2 } { #3 }
+         }
+       }
+       {% argument is m-
+        \___FormatChars:nnn { #1 } { -1 } { #3 }
+       }
+     }
+     {% argument is m-n
+      \___FormatChars:nnn { #1 } { #2 } { #3 }
+     }
+   }
+ }
+
+\cs_new_protected:Nn \___FormatChars:nnn
+ {
+  \int_compare:nTF { #1 > #2 > 0 }
+   {
+    #3
+   }
+   {
+    \tl_range:nnn { #3 } { 1 } { #1 - 1 }
+    \joinb\inputcs{\joinb \tl_range:nnn { #3 } { #1 } { #2 }\joine }\joine
+    \tl_range:nnn { #3 } { #2 + 1 } { -1 }
+   }
+ }
+ 
+\ExplSyntaxOff
+
+
+\endinput
